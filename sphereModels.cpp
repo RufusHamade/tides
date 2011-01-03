@@ -41,12 +41,26 @@ int ico_top[]    = {0, 1, 2, 3, 4, 5, 1};
 int ico_bottom[] = {11, 10, 6, 7, 8, 9, 10};
 int ico_middle[] = {1, 8, 2, 9, 3, 10, 4, 6, 5, 7, 1, 8};
 
+sm_model *createModel(int nVertices, int nLayers, int nChunks) {
+	sm_model *newModel = (sm_model*)malloc(sizeof(sm_model));
+	newModel->nVertices = nVertices;
+	newModel->nLayers   = nLayers;
+	newModel->nChunks   = nChunks;
+	newModel->vertices  = (M3DVector3f*)malloc(nVertices*sizeof(M3DVector3f));
+	newModel->levels    = (sm_level*)calloc((nLayers + 1), sizeof(sm_level));
+	newModel->layers    = (sm_layer*)calloc(nLayers, sizeof(sm_layer));
+	newModel->chunks    = (sm_chunk*)calloc(nChunks, sizeof(sm_chunk));
+	return newModel;
+}
+
 void sm_freeModel(sm_model *m) {
     int i;
     for (i = 0; i < m->nChunks; i++) {
         free(m->chunks[i].nodes);
     }
     free(m->chunks);
+    free(m->levels);
+    free(m->layers);
     free(m->vertices);
     free(m);
 }
@@ -92,6 +106,19 @@ void sm_renderModel(sm_model *m) {
     }    
 }
 
+void printModel(sm_model *m) {
+	printf("Vertexes %d, layers %d, chunks %d\n", m->nVertices, m->nLayers, m->nChunks);
+	int i;
+    for (i = 0; i < m->nLayers; i++) {
+		sm_level *lv = &m->levels[i];
+	    printf(" Layer %d: Vertexes: %d - %d\n", i, lv->firstVertex, lv->nVertices);
+	    sm_layer *la = &m->layers[i];
+	    printf(" Level %d: Chunks: %d - %d\n", i, la->firstChunk, la->nChunks);
+	}
+	sm_level *lv = &m->levels[i];
+    printf(" Layer %d: Vertexes: %d - %d\n", i, lv->firstVertex, lv->nVertices);
+};
+
 inline void calculateBisector(M3DVector3f mid, M3DVector3f v1, M3DVector3f v2) {
 	mid[0] = v1[0] + v2[0];
 	mid[1] = v1[1] + v2[1];
@@ -104,12 +131,23 @@ inline void calculateBisector(M3DVector3f mid, M3DVector3f v1, M3DVector3f v2) {
 	mid[2] = mid[2]/abs;
 }
 
+// We create a new level from an old level by doubling the number of vertices in that level.
+// The two levels always have the same origin.
+// We use this fact to calculate the index of a vertex in the new model given the index of the vertex in the old model.
+int getNewNodeFromOld(sm_level *oldL, sm_level *newL, int oldNode) {
+	int off = oldNode - oldL->firstVertex;
+	return newL->firstVertex + 2*off;
+}
+
+// Increment an index within a given level.  When we reach the end of the level, wrap to the beginning.
 inline void incIdx(int &idx, int step, sm_level *l) {
 	idx += step;
 	if (idx >= l->firstVertex + l->nVertices)
 		idx -= l->nVertices;
 }
 
+// Given 2 levels, a starting point in each level, and a number of nodes
+// Create an appropriately sized chunk of the layer joining those two levels
 inline void createStripFromLevels(sm_chunk *chunk, int nNodes, sm_level *l1, sm_level *l2, int s1, int s2) {
 	chunk->type   = GL_TRIANGLE_STRIP;
 	chunk->nNodes = nNodes;
@@ -130,18 +168,9 @@ inline void createStripFromLevels(sm_chunk *chunk, int nNodes, sm_level *l1, sm_
 	}
 }
 
-sm_model *createModel(int nVertices, int nLayers, int nChunks) {
-	sm_model *newModel = (sm_model*)malloc(sizeof(sm_model));
-	newModel->nVertices = nVertices;
-	newModel->nLayers   = nLayers;
-	newModel->nChunks   = nChunks;
-	newModel->vertices  = (M3DVector3f*)malloc(nVertices*sizeof(M3DVector3f));
-	newModel->levels    = (sm_level*)malloc((nLayers + 1)*sizeof(sm_level));
-	newModel->layers    = (sm_layer*)malloc(nLayers*sizeof(sm_layer));
-	newModel->chunks    = (sm_chunk*)malloc(nChunks*sizeof(sm_chunk));
-	return newModel;
-}
-
+// Create a new, larger model suitable for containing the more accurate version of the given old model
+// Allocate the levels, layers and chunks at the same time, and assign vertices and chunks to levels and layers respectively.
+// New vertices are interpolated and assigned to chunks elsewhere.
 sm_model *createNewModelFromOld(sm_model *oldModel) {
 	int i;
 
@@ -166,12 +195,12 @@ sm_model *createNewModelFromOld(sm_model *oldModel) {
 	newModel->levels[0].firstVertex = 0;
 	newModel->levels[0].nVertices   = 1;
 
+	newModel->layers[0].firstChunk = 0;
+	newModel->layers[0].nChunks    = 1;
+
 	newModel->levels[1].firstVertex = newModel->levels[0].followingVertex();
 	newModel->levels[1].nVertices   = oldModel->chunks[0].nNodes - 2;
 
-	newModel->layers[0].firstChunk = 0;
-	newModel->layers[0].nChunks    = 1;
-	
 	newModel->layers[1].firstChunk = newModel->layers[0].followingChunk();
 	newModel->layers[1].nChunks    = oldModel->chunks[0].nNodes - 2;
 
@@ -207,6 +236,7 @@ sm_model *createNewModelFromOld(sm_model *oldModel) {
 	return newModel;
 }
 
+// Create a new, more accurate level by creating vertices bisecting each vertex in the old level.
 void subdivideLevel(sm_model *newM, int newLIdx, sm_model *oldM, int oldLIdx) {
 	sm_level *newL = &newM->levels[newLIdx];
 	sm_level *oldL = &oldM->levels[oldLIdx];
@@ -225,6 +255,8 @@ void subdivideLevel(sm_model *newM, int newLIdx, sm_model *oldM, int oldLIdx) {
 	calculateBisector(newM->vertices[newV + 1], oldM->vertices[oldV], oldM->vertices[oldL->firstVertex]);
 }
 
+// The chunks tell us which vertices are adjoining in each layer
+// Use this fact to create a new vertex between each neighbouring node on the two levels bordering this layer 
 void createNewLevel(sm_model *newM, int newLIdx, sm_model *oldM, int oldLIdx) {
 	sm_level *newL = &newM->levels[newLIdx];
 	sm_layer *oldL = &oldM->layers[oldLIdx];
@@ -275,11 +307,6 @@ void recreateFan(sm_model *newModel, int newLApex, int newLNext, int newLLast,
 	fanChunk->nodes[i+1] = fanChunk->nodes[1];
 }
 
-int getNewNodeFromOld(sm_level *oldL, sm_level *newL, int oldNode) {
-	int off = oldNode - oldL->firstVertex;
-	return newL->firstVertex + 2*off;
-}
-
 void recreateLayer(sm_model *newModel, int newLayer0, int newLayer1, int newL0, int newL1, int newL2,  
 				    sm_model *oldModel, int oldLayer, int oldL0, int oldL1) {
 	//printf(" Processing layer %d (%d %d) to get layers %d %d (%d %d %d)\n", 
@@ -318,19 +345,6 @@ void recreateLayer(sm_model *newModel, int newLayer0, int newLayer1, int newL0, 
 		incIdx(nv1, oldChunk->nNodes - 2, &newModel->levels[newL1]);
 	}
 }
-
-void printModel(sm_model *m) {
-	printf("Vertexes %d, layers %d, chunks %d\n", m->nVertices, m->nLayers, m->nChunks);
-	int i;
-    for (i = 0; i < m->nLayers; i++) {
-		sm_level *lv = &m->levels[i];
-	    printf(" Layer %d: Vertexes: %d - %d\n", i, lv->firstVertex, lv->nVertices);
-	    sm_layer *la = &m->layers[i];
-	    printf(" Level %d: Chunks: %d - %d\n", i, la->firstChunk, la->nChunks);
-	}
-	sm_level *lv = &m->levels[i];
-    printf(" Layer %d: Vertexes: %d - %d\n", i, lv->firstVertex, lv->nVertices);
-};
 
 sm_model *sm_getUnitIsocahedron() {
 	//printf("Calculating isocahedron\n");

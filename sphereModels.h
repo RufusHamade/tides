@@ -1,6 +1,5 @@
 /* Data structures used to define models. */
 
-#include <GL/gl.h>
 #include "math3d.h"
 
 typedef struct sm_chunk {

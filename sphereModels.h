@@ -1,6 +1,10 @@
 /* Data structures used to define models. */
 
+#include <GL/gl.h>
 #include "math3d.h"
+
+#ifndef _SPHERE_MODELS_H
+#define _SPHERE_MODELS_H
 
 typedef struct sm_chunk {
     GLenum type;
@@ -101,3 +105,5 @@ void sm_freeModel(sm_model*m);
 void sm_renderChunk(sm_model *m, sm_chunk *c);
 sm_model *sm_getUnitIsocahedron();
 sm_model *sm_getUnitSphere(int precision);
+
+#endif /* _SPHERE_MODELS_H */

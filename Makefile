@@ -1,5 +1,5 @@
 SMSOURCES = spheretest.cpp sphereModels.cpp math3d.cpp
-NBSOURCES = nbtest.cpp nbody.cpp sphereModels.cpp math3d.cpp
+NBSOURCES = nbtest.cpp nbody.cpp sphereModels.cpp math3d.cpp nb_creators.cpp
 
 CC = g++
 LIBDIRS = -L/usr/X11R6/lib -L/usr/X11R6/lib64 -L/usr/local/lib

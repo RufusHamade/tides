@@ -12,7 +12,7 @@ static inline void weightedAccumulate(M3DVector3f a, M3DVector3f v, float weight
 	a[2] += v[2] * weight;
 }
 
-static void calculateForceFieldAt(M3DVector3f ff, M3DVector3f pos, nb_world *world, int slot, int excludeBody) {
+static void calculateForceFieldAt(M3DVector3f ff, M3DVector3f pos, nb_world_t *world, int slot, int excludeBody) {
 	m3dLoadVector3(ff, 0.0f, 0.0f, 0.0f);
 
 	for (int j = 0; j < world->nBodies; j++) {
@@ -28,12 +28,12 @@ static void calculateForceFieldAt(M3DVector3f ff, M3DVector3f pos, nb_world *wor
 	}
 }
 
-void nb_calculateForceFieldAt(M3DVector3f ff, M3DVector3f pos, nb_world *world, int excludeBody) {
+void nb_calculateForceFieldAt(M3DVector3f ff, M3DVector3f pos, nb_world_t *world, int excludeBody) {
 	calculateForceFieldAt(ff, pos, world, world->current(), excludeBody);
 }
 
 
-static inline void calculateAccelerations(nb_world *world, int slot) {
+static inline void calculateAccelerations(nb_world_t *world, int slot) {
 	for (int i = 0; i < world->nBodies; i++) {
 		calculateForceFieldAt(world->bodies[i].pva[slot].acceleration, world->bodies[i].pva[slot].position, world, slot, i);
 	}
@@ -51,7 +51,7 @@ static inline void integrateOneTrapezoid(M3DVector3f f, M3DVector3f i, M3DVector
 	f[2] = i[2] + (ci[2] + cf[2])/2.0f * dt;
 }
 
-static inline void integrateEuler(nb_world *world, float dt, int from, int to) {
+static inline void integrateEuler(nb_world_t *world, float dt, int from, int to) {
 	calculateAccelerations(world, from);
 	
 	for (int i = 0; i < world->nBodies; i++) {
@@ -60,7 +60,7 @@ static inline void integrateEuler(nb_world *world, float dt, int from, int to) {
 	}
 }
 
-static inline void reintegrateTrapezoid(nb_world *world, float dt, int from, int to) {
+static inline void reintegrateTrapezoid(nb_world_t *world, float dt, int from, int to) {
 	calculateAccelerations(world, to);
 	
 	for (int i = 0; i < world->nBodies; i++) {
@@ -69,12 +69,12 @@ static inline void reintegrateTrapezoid(nb_world *world, float dt, int from, int
 	}
 }
 
-static inline void handleImpacts(nb_world *world, int slot) {
+static inline void handleImpacts(nb_world_t *world, int slot) {
 	for (int i = 0; i < world->nBodies; i++) {
-		nb_pva *pva_i = &world->bodies[i].pva[slot];
+		nb_pva_t *pva_i = &world->bodies[i].pva[slot];
 		
 		for (int j = i+1; j < world->nBodies; j++) {
-			nb_pva *pva_j = &world->bodies[j].pva[slot];
+			nb_pva_t *pva_j = &world->bodies[j].pva[slot];
 			
 			M3DVector3f sep;
 			m3dSubtractVectors3(sep, pva_i->position, pva_j->position);
@@ -129,7 +129,7 @@ static inline void handleImpacts(nb_world *world, int slot) {
 }
 
 #define STEPS 100
-void nb_integrate(nb_world *world, float dt) {
+void nb_integrate(nb_world_t *world, float dt) {
 	for (int i = 0; i < STEPS; i++) {
 		handleImpacts(world, world->current());
 		integrateEuler(world, dt/100, world->current(), world->next());
@@ -138,7 +138,7 @@ void nb_integrate(nb_world *world, float dt) {
 	}
 }
 
-void nb_getSummaryValues(float &mtot, M3DVector3f com, M3DVector3f vtot, float &etot, nb_world* world) {
+void nb_getSummaryValues(float &mtot, M3DVector3f com, M3DVector3f vtot, float &etot, nb_world_t* world) {
 	mtot = 0.0f;
 	m3dLoadVector3(com,  0.0f, 0.0f, 0.0f);
 	m3dLoadVector3(vtot, 0.0f, 0.0f, 0.0f);
@@ -163,29 +163,16 @@ void nb_getSummaryValues(float &mtot, M3DVector3f com, M3DVector3f vtot, float &
 	m3dScaleVector3(vtot, 1.0f/mtot);
 }
 
-// Make sure objects don't walk off the screen by transforming the model to center-of-mass coordinates
-void centerModel(nb_world *world) {
-	M3DVector3f vtot, com;
-	float mtot, etot;
-	
-	nb_getSummaryValues(mtot, com, vtot, etot, world);
-
-	for (int i = 0; i < world->nBodies; i++) {
-		m3dSubtractVectors3(world->getCurrentPVA(i)->velocity, world->getCurrentPVA(i)->velocity, vtot);
-		m3dSubtractVectors3(world->getCurrentPVA(i)->position, world->getCurrentPVA(i)->position, com);
-	}
-}
-
-nb_world * nb_createWorld(int nBodies) {
-	nb_world *world = (nb_world *)malloc(sizeof(nb_world));
+nb_world_t * nb_createWorld(int nBodies) {
+	nb_world_t *world = (nb_world_t *)malloc(sizeof(nb_world_t));
 	world->nBodies = nBodies;
 	world->t       = 0.0f;
 	world->slot    = 0;
 	world->slotMax = NSLOTS - 1;
 
-	world->bodies = (nb_body *)malloc(nBodies * sizeof(nb_body));
+	world->bodies = (nb_body_t *)malloc(nBodies * sizeof(nb_body_t));
 	for (int i = 0; i < world->nBodies; i++) {
-		world->bodies[i].pva = (nb_pva *)calloc(NSLOTS, sizeof(nb_pva));
+		world->bodies[i].pva = (nb_pva_t *)calloc(NSLOTS, sizeof(nb_pva_t));
 		// Initially we use the same unit sphere for all bodies.  Later we may use more accurate unit spheres for larger bodies.
 		sm_model *s = world->bodies[i].unitSphere = sm_getUnitSphere(3);
 		world->bodies[i].sampleVertices = (M3DVector3f *)calloc(s->nVertices, sizeof(M3DVector3f));
@@ -198,7 +185,7 @@ nb_world * nb_createWorld(int nBodies) {
 	return world;
 }
 
-void nb_freeWorld(nb_world *world) {
+void nb_freeWorld(nb_world_t *world) {
 	for (int i = 0; i < world->nBodies; i++) {
 		sm_freeModel(world->bodies[i].unitSphere);
 		free(world->bodies[i].pva);
@@ -212,147 +199,11 @@ void nb_freeWorld(nb_world *world) {
 	free(world);
 }
 
-const float DEFAULT_STIFFNESS = 0.1f;
-
-nb_world *nb_createOrbit2World() {
-	nb_world *world = nb_createWorld(2);
-	world->radius = 20.0f;
-	world->stiffness = DEFAULT_STIFFNESS;
-	world->bounceFudgeFactor = 1.5f;
-
-	world->bodies[0].mass   = 10.0f;
-	world->bodies[0].radius = 2.5f;
-	m3dLoadVector3(world->bodies[0].pva[world->current()].position, 0.0f, 0.0f, 0.0f);
-	m3dLoadVector3(world->bodies[0].pva[world->current()].velocity, 0.0f, 0.0f, 0.0f);
-
-	world->bodies[1].mass   = 1.0f;
-	world->bodies[1].radius = 0.5f;
-	m3dLoadVector3(world->bodies[1].pva[world->current()].position, -10.0f, 0.0f, 0.0f);
-	m3dLoadVector3(world->bodies[1].pva[world->current()].velocity, 0.0f, 0.7f, 0.7f);
-	
-	centerModel(world);
-	return world;
-}
-
-nb_world *nb_createOrbit3World() {
-	nb_world *world = nb_createWorld(3);
-	world->radius = 20.0f;
-	world->stiffness = DEFAULT_STIFFNESS;
-	world->bounceFudgeFactor = 3.0f;
-
-	world->bodies[0].mass   = 1.0f;
-	world->bodies[0].radius = 1.5f;
-	m3dLoadVector3(world->bodies[0].pva[world->current()].position, 0.0f, 0.0f, 0.0f);
-	m3dLoadVector3(world->bodies[0].pva[world->current()].velocity, 0.0f, 0.0f, 0.0f);
-
-	world->bodies[1].mass   = 0.1f;
-	world->bodies[1].radius = 0.3f;
-	m3dLoadVector3(world->bodies[1].pva[world->current()].position, -10.0f, 0.0f, 0.0f);
-	m3dLoadVector3(world->bodies[1].pva[world->current()].velocity, 0.0f, 0.2f, 0.25f);
-
-	world->bodies[2].mass   = 0.02f;
-	world->bodies[2].radius = 0.05f;
-	m3dLoadVector3(world->bodies[2].pva[world->current()].position, -11.0f, 0.0f, 0.0f);
-	m3dLoadVector3(world->bodies[2].pva[world->current()].velocity, 0.0f, 0.45f, 0.0f);
-	
-	centerModel(world);
-	return world;
-}
-
-nb_world *nb_createBounce2World() {
-	nb_world *world = nb_createWorld(2);
-	world->radius = 20.0f;
-	world->stiffness = DEFAULT_STIFFNESS * 5;
-	world->bounceFudgeFactor = 1.5f;
-
-	world->bodies[0].mass   = 1.0f;
-	world->bodies[0].radius = 1.0f;
-	m3dLoadVector3(world->bodies[0].pva[world->current()].position, 0.0f, 0.0f, 0.0f);
-	m3dLoadVector3(world->bodies[0].pva[world->current()].velocity, 0.0f, 0.0f, 0.0f);
-
-	world->bodies[1].mass   = 2.0f;
-	world->bodies[1].radius = 2.0f;
-	m3dLoadVector3(world->bodies[1].pva[world->current()].position, -10.0f, 0.0f, 0.0f);
-	m3dLoadVector3(world->bodies[1].pva[world->current()].velocity, 0.0f, 0.3f, 0.0f);
-	
-	centerModel(world);
-	return world;
-}
-
-nb_world *nb_createBounce2bWorld() {
-	nb_world *world = nb_createWorld(2);
-	world->radius = 15.0f;
-	world->stiffness = DEFAULT_STIFFNESS * 5;
-	world->bounceFudgeFactor = 1.5f;
-
-	world->bodies[0].mass   = 1.0f;
-	world->bodies[0].radius = 1.0f;
-	m3dLoadVector3(world->bodies[0].pva[world->current()].position, 0.0f, 0.0f, 0.0f);
-	m3dLoadVector3(world->bodies[0].pva[world->current()].velocity, 0.0f, 0.0f, 0.0f);
-
-	world->bodies[1].mass   = 2.0f;
-	world->bodies[1].radius = 2.0f;
-	m3dLoadVector3(world->bodies[1].pva[world->current()].position, -10.0f, 0.0f, 0.0f);
-	m3dLoadVector3(world->bodies[1].pva[world->current()].velocity, 1.0f, 0.3f, 0.0f);
-	
-	centerModel(world);
-	return world;
-}
-
-nb_world *nb_createBounce4World() {
-	nb_world *world = nb_createWorld(4);
-	world->radius = 20.0f;
-	world->stiffness = DEFAULT_STIFFNESS * 5;
-	world->bounceFudgeFactor = 1.5f;
-
-	world->bodies[0].mass   = 1.0f;
-	world->bodies[0].radius = 1.0f;
-	m3dLoadVector3(world->bodies[0].pva[world->current()].position, 10.0f, 10.0f, 0.0f);
-	m3dLoadVector3(world->bodies[0].pva[world->current()].velocity, 0.0f, 0.0f, 0.0f);
-
-	world->bodies[1].mass   = 1.0f;
-	world->bodies[1].radius = 1.0f;
-	m3dLoadVector3(world->bodies[1].pva[world->current()].position, 10.0f, -10.0f, 0.0f);
-	m3dLoadVector3(world->bodies[1].pva[world->current()].velocity, 0.0f, 0.0f, 0.0f);
-
-	world->bodies[2].mass   = 1.0f;
-	world->bodies[2].radius = 1.0f;
-	m3dLoadVector3(world->bodies[2].pva[world->current()].position, -10.0f, -10.0f, 0.0f);
-	m3dLoadVector3(world->bodies[2].pva[world->current()].velocity, 0.0f, 0.0f, 0.0f);
-
-	world->bodies[3].mass   = 1.0f;
-	world->bodies[3].radius = 1.0f;
-	m3dLoadVector3(world->bodies[3].pva[world->current()].position, -10.0f, 10.0f, 0.0f);
-	m3dLoadVector3(world->bodies[3].pva[world->current()].velocity, 0.0f, 0.0f, 0.0f);
-	
-	centerModel(world);
-	return world;
-}
-
-nb_world *nb_createBounce9World() {
-	nb_world *world = nb_createWorld(9);
-	world->radius = 15.0f;
-	world->stiffness = DEFAULT_STIFFNESS * 5;
-	world->bounceFudgeFactor = 1.5f;
-	
-	for (int i = 0; i < 9; i++) {
-		int x = i%3 - 1;
-		int y = i/3 - 1;
-		world->bodies[i].mass   = 1.0f;
-		world->bodies[i].radius = 1.0f;
-		m3dLoadVector3(world->bodies[i].pva[world->current()].position, 5.0f*x, 5.0f*y, 0.0f);
-		m3dLoadVector3(world->bodies[i].pva[world->current()].velocity, 0.0f, 1.0f*x, 1.0f*y);
-	}
-	
-	centerModel(world);
-	return world;
-}
-
-void nb_calculatePercievedForces(nb_world *world, int body) {
-	nb_body *b = &world->bodies[body];
+void nb_calculatePercievedForces(nb_world_t *world, int body) {
+	nb_body_t *b = &world->bodies[body];
 	sm_model *s = b->unitSphere;
 	for (int i = 0; i < s->nVertices; i++) {
-		nb_pva *pva = world->getCurrentPVA(body);
+		nb_pva_t *pva = world->getCurrentPVA(body);
 		M3DVector3f n;  // Normal.
 		m3dCopyVector3(n, b->unitSphere->vertices[i]);
 		// Need to rotate the vertex too, when we have object rotation.
@@ -370,8 +221,8 @@ void nb_calculatePercievedForces(nb_world *world, int body) {
 	}
 }
 
-void nb_calculateNormals(nb_world *world, int body) {
-	nb_body *b = &world->bodies[body];
+void nb_calculateNormals(nb_world_t *world, int body) {
+	nb_body_t *b = &world->bodies[body];
 	sm_model *s = b->unitSphere;
 	
 	// Calculate normal for every tri.

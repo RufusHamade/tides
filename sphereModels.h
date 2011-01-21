@@ -6,23 +6,23 @@
 #ifndef _SPHERE_MODELS_H
 #define _SPHERE_MODELS_H
 
-typedef struct sm_chunk {
+typedef struct {
     GLenum type;
     int nVertices;
     int *vertices;
     bool backwards;
-} sm_chunk;
+} sm_chunk_t;
 
-typedef struct sm_layer {
+typedef struct {
     int firstChunk;
     int nChunks;
 
     int followingChunk() {
 		return firstChunk + nChunks;
 	}
-} sm_layer;
+} sm_layer_t;
 
-typedef struct sm_level {
+typedef struct {
     int firstVertex;
     int nVertices;
     
@@ -38,13 +38,13 @@ typedef struct sm_level {
 			idx += nVertices;
 		return idx;
 	}
-} sm_level;
+} sm_level_t;
 
-typedef struct sm_tri {
+typedef struct {
 	int indicesStart;
-} sm_tri;
+} sm_tri_t;
 
-typedef struct sm_vertexInfo {
+typedef struct {
 	int nTris;
 	int tris[6];
 	
@@ -59,27 +59,27 @@ typedef struct sm_vertexInfo {
 		tris[nTris] = triIdx;
 		nTris++;
 	}
-} sm_vertexInfo;
+} sm_vertexInfo_t;
 
-typedef struct sm_model {
+typedef struct {
     int nVertices;
-    M3DVector3f   *vertices;
-	sm_vertexInfo *vInfo;
+    M3DVector3f     *vertices;
+	sm_vertexInfo_t *vInfo;
 	
 	int nLayers;
-	sm_layer *layers;
-	sm_level *levels;
+	sm_layer_t *layers;
+	sm_level_t *levels;
 
     int nChunks;
-    sm_chunk *chunks;
+    sm_chunk_t *chunks;
 
 	int nTris;
 	int nextTri;
-	sm_tri   *tris;
+	sm_tri_t   *tris;
 	unsigned *indices;
 
-	sm_chunk *getChunk(int layer, int offset) {
-		sm_layer *l = &layers[layer]; 
+	sm_chunk_t *getChunk(int layer, int offset) {
+		sm_layer_t *l = &layers[layer]; 
 		return &chunks[l->firstChunk + offset];
 	}
 	
@@ -99,11 +99,11 @@ typedef struct sm_model {
 		vInfo[v2idx].addTri(nextTri);
 		nextTri++;
 	}
-} sm_model;
+} sm_model_t;
 
-void sm_freeModel(sm_model*m);
-void sm_renderChunk(sm_model *m, sm_chunk *c);
-sm_model *sm_getUnitIsocahedron();
-sm_model *sm_getUnitSphere(int precision);
+void sm_freeModel(sm_model_t*m);
+void sm_renderChunk(sm_model_t *m, sm_chunk_t *c);
+sm_model_t *sm_getUnitIsocahedron();
+sm_model_t *sm_getUnitSphere(int precision);
 
 #endif /* _SPHERE_MODELS_H */

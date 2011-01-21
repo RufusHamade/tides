@@ -19,7 +19,7 @@ M3DVector4f white     = { 1.0f, 1.0f, 1.0f, 1.0f };
 M3DVector4f dim       = { 0.25f, 0.25f, 0.25f, 1.0f };
 M3DVector4f bright    = { 1.0f, 1.0f, 1.0f, 1.0f };
 					
-void renderColorfulModel(sm_model *m) {
+void renderColorfulModel(sm_model_t *m) {
 	const int NCOLS = 7;
 	M3DVector3f colors[NCOLS] = {{1.0f, 1.0f, 1.0f}, 
 								 {1.0f, 0.0f, 0.0f}, 
@@ -37,7 +37,7 @@ void renderColorfulModel(sm_model *m) {
     }    
 }
 
-void renderModel(sm_model *m) {
+void renderModel(sm_model_t *m) {
 	glColor3fv(white );
     for (int i = 0; i < m->nChunks; i++) {
 		sm_renderChunk(m, &m->chunks[i]);
@@ -61,7 +61,7 @@ void checkError(const char *msg) {
 }
 
 
-void renderFromVertexList(sm_model *m) {
+void renderFromVertexList(sm_model_t *m) {
 	M3DVector3f colors[m->nVertices];
 	for (int i = 0; i < m->nVertices; i++) {
 		setColorForHeat(colors[i], -2.0f*i/(m->nVertices - 1) + 1.0f);
@@ -87,7 +87,7 @@ void renderFromVertexList(sm_model *m) {
 void RenderScene(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-	sm_model *models[NMODELS];
+	sm_model_t *models[NMODELS];
 	for (int i = 0; i < NMODELS; i++)
 		models[i] = sm_getUnitSphere(i);
 

@@ -12,13 +12,13 @@ typedef struct nb_pva {
 	M3DVector3f  position;
 	M3DVector3f  velocity;
 	M3DVector3f  acceleration;
-} nb_pva;
+} nb_pva_t;
 
 typedef struct nb_body {
 	float mass;
 	float radius;
 
-	nb_pva *pva;
+	nb_pva_t *pva;
 
 	sm_model     *unitSphere;
 	M3DVector3f  *sampleVertices;
@@ -26,7 +26,7 @@ typedef struct nb_body {
 	float        *pfNormalComponent;
 	M3DVector3f  *displayVertices;
 	M3DVector3f  *displayNormals;
-} nb_body;
+} nb_body_t;
 
 typedef struct nb_world {
 	float radius;
@@ -43,27 +43,28 @@ typedef struct nb_world {
 	void inc(float dt)    { slot = next(); t += dt;}	
 
 	int nBodies;
-	nb_body *bodies;
+	nb_body_t *bodies;
 	
-	nb_pva *getCurrentPVA(int body) { return &bodies[body].pva[current()]; }
-} nb_world;
+	nb_pva_t *getCurrentPVA(int body) { return &bodies[body].pva[current()]; }
+} nb_world_t;
 
-nb_world * nb_createWorld(int nBodies);
-void nb_freeWorld(nb_world *world);
+typedef struct nb_creator {
+	const char *name;
+	nb_world_t *(*creator)(void);
+} nb_creator_t;
 
-nb_world *nb_createOrbit2World();
-nb_world *nb_createOrbit3World();
-nb_world *nb_createBounce2World();
-nb_world *nb_createBounce2bWorld();
-nb_world *nb_createBounce4World();
-nb_world *nb_createBounce9World();
+extern int nCreators;
+extern nb_creator_t creators[];
 
-void nb_calculateForceFieldAt(M3DVector3f ff, M3DVector3f pos, nb_world world, int excludeBody);
-void nb_integrate(nb_world *world, float dt);
+nb_world_t * nb_createWorld(int nBodies);
+void nb_freeWorld(nb_world_t *world);
 
-void nb_calculatePercievedForces(nb_world *world, int body);
-void nb_calculateNormals(nb_world *world, int body);
+void nb_calculateForceFieldAt(M3DVector3f ff, M3DVector3f pos, nb_world_t world, int excludeBody);
+void nb_integrate(nb_world_t *world, float dt);
 
-void nb_getSummaryValues(float &totalMass, M3DVector3f centerOfMass, M3DVector3f totalVelocity, float &totalEnergy, nb_world* world);
+void nb_calculatePercievedForces(nb_world_t *world, int body);
+void nb_calculateNormals(nb_world_t *world, int body);
+
+void nb_getSummaryValues(float &totalMass, M3DVector3f centerOfMass, M3DVector3f totalVelocity, float &totalEnergy, nb_world_t* world);
 
 #endif /* _N_BODY_H */

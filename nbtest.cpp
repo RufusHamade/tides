@@ -19,8 +19,7 @@ M3DVector4f white     = { 1.0f, 1.0f, 1.0f, 1.0f };
 M3DVector4f dim       = { 0.25f, 0.25f, 0.25f, 1.0f };
 M3DVector4f bright    = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-sm_model *unitSphere;
-nb_world *world = NULL;
+nb_world_t *world = NULL;
 float initialEnergy;
 int i = 0;
 
@@ -33,8 +32,8 @@ void setColorForHeat(M3DVector3f color, float heat) {
 	color[2] = 1.0f - color[0];
 }
 
-void renderModel(nb_world *world, int body) {
-	nb_body *b = &world->bodies[body];
+void renderModel(nb_world_t *world, int body) {
+	nb_body_t *b = &world->bodies[body];
 	sm_model *s = b->unitSphere;
 	M3DVector3f colors[s->nVertices];
 	
@@ -135,23 +134,32 @@ void ChangeSize(int w, int h) {
     glLoadIdentity();
 }
 
+void usage(void) {
+	int i;
+	printf("Usage: nbtest <world>\n");
+	printf(" where <world> is one of: ");
+	for (i = 0; i < nCreators - 1; i++) {
+		printf("%s ", creators[i].name);
+	}
+	printf("%s\n", creators[i].name);
+}
+
 int main(int argc, char* argv[]) {
-	unitSphere = sm_getUnitSphere(2);
-	if (argc == 2) {
-		if (strcmp(argv[1], "orbit2") == 0)
-			world = nb_createOrbit2World();
-		if (strcmp(argv[1], "bounce2") == 0)
-			world = nb_createBounce2World();
-		if (strcmp(argv[1], "bounce2b") == 0)
-			world = nb_createBounce2bWorld();
-		if (strcmp(argv[1], "bounce4") == 0)
-			world = nb_createBounce4World();
-		if (strcmp(argv[1], "bounce9") == 0)
-			world = nb_createBounce9World();
+	if (argc != 2) {
+		usage();
+		return -1;
+	}
+	
+	for (int i = 0; i < nCreators; i++) {
+		if (strcmp(argv[1], creators[i].name) == 0)
+			world = (creators[i].creator)();
 	}
 
-	if (world == NULL)
-		world = nb_createOrbit3World(); 
+	if (world == NULL) {
+		printf("You need to specify a world\n");
+		usage();
+		return -1;
+	}
 
 	float mtot;
 	M3DVector3f vtot, com;
@@ -160,7 +168,7 @@ int main(int argc, char* argv[]) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	glutInitWindowSize(800, 600);
-	glutCreateWindow("Sphere Tesselation Test");
+	glutCreateWindow("NBody Physics Test");
 	glutReshapeFunc(ChangeSize);
 	glutDisplayFunc(RenderScene);
 

@@ -9,6 +9,8 @@ INCDIRS = -I/usr/include -I/usr/local/include -I/usr/include/GL
 CFLAGS  = -c -Wall -g $(INCDIRS)
 LDFLAGS = $(LIBDIRS) $(LIBS)
 
+all: spheretest nbtest
+
 spheretest: $(SMSOURCES:.cpp=.o)
 	$(CC) -o $@  $(SMSOURCES:.cpp=.o) $(LDFLAGS)
 	

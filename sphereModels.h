@@ -1,6 +1,6 @@
 /* Data structures used to define models. */
 
-#include <GL/gl.h>
+#include <gl.h>
 #include "math3d.h"
 
 #ifndef _SPHERE_MODELS_H

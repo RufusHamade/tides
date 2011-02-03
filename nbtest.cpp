@@ -1,5 +1,5 @@
-#include <GL/gl.h>
-#include <GL/glu.h>
+#include <gl.h>
+#include <glu.h>
 #include <glut.h>
 
 #include <math.h>
@@ -33,8 +33,8 @@ void setColorForHeat(M3DVector3f color, float heat) {
 }
 
 void renderModel(nb_world_t *world, int body) {
-	nb_body_t *b = &world->bodies[body];
-	sm_model *s = b->unitSphere;
+	nb_body_t  *b = &world->bodies[body];
+	sm_model_t *s = b->unitSphere;
 	M3DVector3f colors[s->nVertices];
 	
 	for (int i = 0; i < s->nVertices; i++) {

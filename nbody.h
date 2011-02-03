@@ -20,7 +20,7 @@ typedef struct nb_body {
 
 	nb_pva_t *pva;
 
-	sm_model     *unitSphere;
+	sm_model_t   *unitSphere;
 	M3DVector3f  *sampleVertices;
 	M3DVector3f  *perceivedForceAtSample;
 	float        *pfNormalComponent;

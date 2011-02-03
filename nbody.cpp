@@ -174,7 +174,7 @@ nb_world_t * nb_createWorld(int nBodies) {
 	for (int i = 0; i < world->nBodies; i++) {
 		world->bodies[i].pva = (nb_pva_t *)calloc(NSLOTS, sizeof(nb_pva_t));
 		// Initially we use the same unit sphere for all bodies.  Later we may use more accurate unit spheres for larger bodies.
-		sm_model *s = world->bodies[i].unitSphere = sm_getUnitSphere(3);
+		sm_model_t *s = world->bodies[i].unitSphere = sm_getUnitSphere(3);
 		world->bodies[i].sampleVertices = (M3DVector3f *)calloc(s->nVertices, sizeof(M3DVector3f));
 		world->bodies[i].perceivedForceAtSample = (M3DVector3f *)calloc(s->nVertices, sizeof(M3DVector3f));
 		world->bodies[i].pfNormalComponent = (float *)calloc(s->nVertices, sizeof(float));
@@ -200,8 +200,8 @@ void nb_freeWorld(nb_world_t *world) {
 }
 
 void nb_calculatePercievedForces(nb_world_t *world, int body) {
-	nb_body_t *b = &world->bodies[body];
-	sm_model *s = b->unitSphere;
+	nb_body_t  *b = &world->bodies[body];
+	sm_model_t *s = b->unitSphere;
 	for (int i = 0; i < s->nVertices; i++) {
 		nb_pva_t *pva = world->getCurrentPVA(body);
 		M3DVector3f n;  // Normal.
@@ -222,8 +222,8 @@ void nb_calculatePercievedForces(nb_world_t *world, int body) {
 }
 
 void nb_calculateNormals(nb_world_t *world, int body) {
-	nb_body_t *b = &world->bodies[body];
-	sm_model *s = b->unitSphere;
+	nb_body_t  *b = &world->bodies[body];
+	sm_model_t *s = b->unitSphere;
 	
 	// Calculate normal for every tri.
 	M3DVector3f triNormals[s->nTris];
@@ -241,7 +241,7 @@ void nb_calculateNormals(nb_world_t *world, int body) {
 	// use average of tri normals to calculate normal of vertex.
 	for (int i = 0; i < s->nVertices; i++) {
 		m3dLoadVector3(b->displayNormals[i], 0.0f, 0.0f, 0.0f);
-		sm_vertexInfo *vi = &s->vInfo[i];
+		sm_vertexInfo_t *vi = &s->vInfo[i];
 		for (int j = 0; j < vi->nTris; j++) {
 			m3dAddVectors3(b->displayNormals[i], b->displayNormals[i], triNormals[vi->tris[j]]);
 		}

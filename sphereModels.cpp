@@ -1,5 +1,5 @@
+#include <glew.h>
 
-#include <gl.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -17,7 +17,7 @@
 static sm_model_t *createModel(int nVertices, int nLayers, int nChunks, int nTris) {
 	sm_model_t *newModel = (sm_model_t*)calloc(1, sizeof(sm_model_t));
 	newModel->nVertices = nVertices;
-	
+
 	newModel->nLayers   = nLayers;
 	newModel->nChunks   = nChunks;
 	newModel->nTris     = nTris;
@@ -110,10 +110,10 @@ static void loadFanChunk(sm_model_t *model, sm_chunk_t *chunk, sm_level_t *apexL
 
     chunk->vertices[0]  = apexLevel->firstVertex;
     int i;
-    for (i = 0; i < FAN_SIZE; i++) 
+    for (i = 0; i < FAN_SIZE; i++)
 		chunk->vertices[i + 1]  = nextLevel->firstVertex + i;
 	chunk->vertices[i + 1] = nextLevel->firstVertex;
-    
+
     for (i = 1; i < FAN_SIZE; i++)
 		model->addTri(chunk->vertices[0], chunk->vertices[i], chunk->vertices[i + 1], backwards);
 	model->addTri(chunk->vertices[0], chunk->vertices[i], chunk->vertices[i + 1], backwards);
@@ -128,17 +128,17 @@ static void loadStripChunk(sm_model_t *model, sm_chunk_t *chunk, sm_level_t *l0,
 	DBGPRINT("  Creating strip of %d vertices from levels starting %d %d\n", nVertices, s0, s1);
 	for (int i = 0; i < nVertices; i++) {
 		if (i%2 == 0) {
-			chunk->vertices[i] = s0; 
+			chunk->vertices[i] = s0;
 			s0 = l0->incIdx(s0, 1);
 		}
 		else {
-			chunk->vertices[i] = s1; 
+			chunk->vertices[i] = s1;
 			s1 = l1->incIdx(s1, 1);
 		}
 
 		DBGPRINT("   adding vertex %d\n", chunk->vertices[i]);
 	}
-	
+
 	for (int i = 2; i < nVertices; i++) {
 		model->addTri(chunk->vertices[i - 2], chunk->vertices[i - 1], chunk->vertices[i], backwards);
 		backwards = !backwards;
@@ -152,12 +152,12 @@ const float r   = 1.902113033;   /* sqrt(1^2 + phi^2)  */
  * ( +-1/r,  +-phi/r, 0)
  * (0,       +-1/r,   +-phi/r)
  * (+-phi/r, 0,       +-1/r)
- * 
+ *
  * We consider (1/r, phi/r, 0) top of icosahedron.
  * Next 5 vertices are adjacent to top.
  * Next 5 vertices are adjacent to bottom.
  * last vertex is bottom of icosahedron (-1/r, -phi/r, 0). */
-static M3DVector3f icosahedron[12] = 
+static M3DVector3f icosahedron[12] =
 	{ { 1.0/r,  phi/r,  0},
 
       {-1.0/r,  phi/r,  0},
@@ -184,7 +184,7 @@ sm_model_t *sm_getUnitIsocahedron() {
     ret->levels[0].nVertices   = 1;
     ret->layers[0].firstChunk  = 0;
     ret->layers[0].nChunks     = 1;
-    
+
     ret->levels[1].firstVertex = ret->levels[0].followingVertex();
     ret->levels[1].nVertices   = 5;
     ret->layers[1].firstChunk  = ret->layers[0].followingChunk();
@@ -198,9 +198,9 @@ sm_model_t *sm_getUnitIsocahedron() {
     ret->levels[3].firstVertex = ret->levels[2].followingVertex();
     ret->levels[3].nVertices   = 1;
 
-	loadFanChunk(ret,   &ret->chunks[0], &ret->levels[0], &ret->levels[1], false); 
-	loadStripChunk(ret, &ret->chunks[1], &ret->levels[1], &ret->levels[2], 1, 8, 12, false); 
-	loadFanChunk(ret,   &ret->chunks[2], &ret->levels[3], &ret->levels[2], true); 
+	loadFanChunk(ret,   &ret->chunks[0], &ret->levels[0], &ret->levels[1], false);
+	loadStripChunk(ret, &ret->chunks[1], &ret->levels[1], &ret->levels[2], 1, 8, 12, false);
+	loadFanChunk(ret,   &ret->chunks[2], &ret->levels[3], &ret->levels[2], true);
 
 	DBGPRINTMODEL(ret);
     return ret;
@@ -230,15 +230,15 @@ void sm_renderIcosahedronFrame() {
     for (j = 0; j < 4; j++)
         glVertex3fv(m->vertices[pnl3[j]]);
     glEnd();
-    
+
     sm_freeModel(m);
-}	
+}
 
 static inline void calculateBisector(M3DVector3f mid, M3DVector3f v1, M3DVector3f v2) {
 	mid[0] = v1[0] + v2[0];
 	mid[1] = v1[1] + v2[1];
 	mid[2] = v1[2] + v2[2];
-	
+
 	float abs = sqrt(mid[0]*mid[0] + mid[1]*mid[1] + mid[2]*mid[2]);
 
 	mid[0] = mid[0]/abs;
@@ -269,12 +269,12 @@ static sm_model_t *createNewModelFromOld(sm_model_t *oldModel) {
 			nChunks += 2;
 	}
 
-	// Every edge in the old model aquires a new vertex.  
+	// Every edge in the old model aquires a new vertex.
 	// There are 3 edges per tri, but each edge is shared  by 2 tris.
 	sm_model_t *newModel = createModel(oldModel->nVertices + oldModel->nTris * 3 / 2, oldModel->nLayers*2, nChunks, oldModel->nTris*4);
 
-	DBGPRINT("Create new from old (%d vertices, %d layers, %d chunks, %d tris) -> new (%d vertices, %d layers, %d chunks, %d tris)\n", 
-			oldModel->nVertices, oldModel->nLayers, oldModel->nChunks, oldModel->nTris, 
+	DBGPRINT("Create new from old (%d vertices, %d layers, %d chunks, %d tris) -> new (%d vertices, %d layers, %d chunks, %d tris)\n",
+			oldModel->nVertices, oldModel->nLayers, oldModel->nChunks, oldModel->nTris,
 			newModel->nVertices, newModel->nLayers, newModel->nChunks, newModel->nTris);
 
 	newModel->levels[0].firstVertex = 0;
@@ -305,16 +305,16 @@ static sm_model_t *createNewModelFromOld(sm_model_t *oldModel) {
 
 	newModel->levels[2*i].firstVertex = newModel->levels[2*i - 1].followingVertex();
 	newModel->levels[2*i].nVertices   = oldModel->levels[i].nVertices * 2;
-	
+
 	newModel->layers[2*i].firstChunk = newModel->layers[2*i - 1].followingChunk();
 	newModel->layers[2*i].nChunks    = oldModel->chunks[oldModel->nChunks - 1].nVertices - 2;
 
 	newModel->levels[2*i + 1].firstVertex = newModel->levels[2*i].followingVertex();
 	newModel->levels[2*i + 1].nVertices   = oldModel->chunks[oldModel->nChunks - 1].nVertices - 2;
-	
+
 	newModel->layers[2*i + 1].firstChunk = newModel->layers[2*i].followingChunk();
 	newModel->layers[2*i + 1].nChunks    = 1;
-	
+
 	newModel->levels[2*i + 2].firstVertex = newModel->levels[2*i + 1].followingVertex();
 	newModel->levels[2*i + 2].nVertices   = 1;
 
@@ -326,57 +326,57 @@ static void subdivideLevel(sm_model_t *newM, int newLIdx, sm_model_t *oldM, int 
 	sm_level_t *newL = &newM->levels[newLIdx];
 	sm_level_t *oldL = &oldM->levels[oldLIdx];
 
-	DBGPRINT(" Subdividing level %d (%d %d) to get level %d (%d %d)\n", 
-	         oldLIdx, oldL->firstVertex, oldL->nVertices, 
+	DBGPRINT(" Subdividing level %d (%d %d) to get level %d (%d %d)\n",
+	         oldLIdx, oldL->firstVertex, oldL->nVertices,
 	         newLIdx, newL->firstVertex, newL->nVertices);
 	int i, oldV, newV;
-	for (i = 0, oldV = oldL->firstVertex, newV = newL->firstVertex; 
-		 i < oldL->nVertices - 1; 
+	for (i = 0, oldV = oldL->firstVertex, newV = newL->firstVertex;
+		 i < oldL->nVertices - 1;
 		 i++, oldV++, newV+=2) {
 		m3dCopyVector3(newM->vertices[newV], oldM->vertices[oldV]);
-		calculateBisector(newM->vertices[newV + 1], oldM->vertices[oldV], oldM->vertices[oldV+1]); 
+		calculateBisector(newM->vertices[newV + 1], oldM->vertices[oldV], oldM->vertices[oldV+1]);
 	}
 	m3dCopyVector3(newM->vertices[newV], oldM->vertices[oldV]);
 	calculateBisector(newM->vertices[newV + 1], oldM->vertices[oldV], oldM->vertices[oldL->firstVertex]);
 }
 
 // The chunks tell us which vertices are adjoining in each layer
-// Use this fact to create a new vertex between each neighbouring node on the two levels bordering this layer 
+// Use this fact to create a new vertex between each neighbouring node on the two levels bordering this layer
 static void createNewLevel(sm_model_t *newM, int newLIdx, sm_model_t *oldM, int oldLIdx) {
 	sm_level_t *newL = &newM->levels[newLIdx];
 	sm_layer_t *oldL = &oldM->layers[oldLIdx];
 
-	DBGPRINT(" Processing chunks in layer %d to get level %d (%d %d)\n", 
+	DBGPRINT(" Processing chunks in layer %d to get level %d (%d %d)\n",
 	         oldLIdx, newLIdx, newL->firstVertex, newL->nVertices);
 	int newV = newL->firstVertex;
 	for (int i = 0; i < oldL->nChunks; i++) {
 		DBGPRINT("  Processing chunk %d\n", oldL->firstChunk + i);
 		sm_chunk_t *c = &oldM->chunks[oldL->firstChunk + i];
-		
+
 		for (int j = 0; j < c->nVertices - 2; j++, newV++) {
-			calculateBisector(newM->vertices[newV], oldM->vertices[c->vertices[j]], oldM->vertices[c->vertices[j + 1]]); 
+			calculateBisector(newM->vertices[newV], oldM->vertices[c->vertices[j]], oldM->vertices[c->vertices[j + 1]]);
 		}
 	}
 }
 
-static void recreateFan(sm_model_t *newModel, int newLApex, int newLNext, int newLLast, 
+static void recreateFan(sm_model_t *newModel, int newLApex, int newLNext, int newLLast,
 						sm_model_t *oldModel, int oldLApex, int oldLNext) {
-	DBGPRINT(" Converting fan from layers (%d %d) to get layers (%d %d %d)\n", 
+	DBGPRINT(" Converting fan from layers (%d %d) to get layers (%d %d %d)\n",
 	         oldLApex, oldLNext, newLApex, newLNext, newLLast);
 	int newApex = newModel->levels[newLApex].firstVertex;
 	int oldApex = oldModel->levels[oldLApex].firstVertex;
 	m3dCopyVector3(newModel->vertices[newApex], oldModel->vertices[oldApex]);
 
-	sm_chunk_t *oldFan =  &oldModel->chunks[oldModel->layers[(oldLApex < oldLNext) ? oldLApex : oldLNext].firstChunk];  
-	sm_chunk_t *newFan =  &newModel->chunks[newModel->layers[(newLApex < newLNext) ? newLApex : newLNext].firstChunk];  
+	sm_chunk_t *oldFan =  &oldModel->chunks[oldModel->layers[(oldLApex < oldLNext) ? oldLApex : oldLNext].firstChunk];
+	sm_chunk_t *newFan =  &newModel->chunks[newModel->layers[(newLApex < newLNext) ? newLApex : newLNext].firstChunk];
 	loadFanChunk(newModel, newFan, &newModel->levels[newLApex], &newModel->levels[newLNext], oldFan->backwards);
-	
+
 	int i, oldV, newV, newV2;
 	int newChunkIdx = newModel->layers[(newLNext < newLLast) ? newLNext : newLLast].firstChunk;
 
-	for (i = 0, oldV = oldModel->levels[oldLNext].firstVertex, 
+	for (i = 0, oldV = oldModel->levels[oldLNext].firstVertex,
 		 newV  = newModel->levels[newLNext].firstVertex,
-		 newV2 = newModel->levels[newLLast].firstVertex; 
+		 newV2 = newModel->levels[newLLast].firstVertex;
 		 i < oldModel->levels[oldLNext].nVertices;
 		 i++, oldV++, newV++, newV2+=2, newChunkIdx++) {
 		calculateBisector(newModel->vertices[newV], oldModel->vertices[oldApex], oldModel->vertices[oldV]);
@@ -385,11 +385,11 @@ static void recreateFan(sm_model_t *newModel, int newLApex, int newLNext, int ne
 	}
 }
 
-static void recreateLayer(sm_model_t *newModel, int newLayer0, int newLayer1, int newL0, int newL1, int newL2,  
+static void recreateLayer(sm_model_t *newModel, int newLayer0, int newLayer1, int newL0, int newL1, int newL2,
 						  sm_model_t *oldModel, int oldLayer, int oldL0, int oldL1) {
-	DBGPRINT(" Processing layer %d (%d %d) to get layers %d %d (%d %d %d)\n", 
+	DBGPRINT(" Processing layer %d (%d %d) to get layers %d %d (%d %d %d)\n",
 	         oldLayer, oldL0, oldL1, newLayer0, newLayer1, newL0, newL1, newL2);
-	
+
 	int nv1 = newModel->levels[newL1].firstVertex;
 
 	for (int i = 0; i < oldModel->layers[oldLayer].nChunks; i++) {
@@ -398,10 +398,10 @@ static void recreateLayer(sm_model_t *newModel, int newLayer0, int newLayer1, in
 		sm_chunk_t *newChunk1 = newModel->getChunk(newLayer1, i);
 		int ov0 = oldChunk->vertices[0];
 		int ov1 = oldChunk->vertices[1];
-		int nv0 = getNewNodeFromOld(&oldModel->levels[oldL0], &newModel->levels[newL0], ov0); 
+		int nv0 = getNewNodeFromOld(&oldModel->levels[oldL0], &newModel->levels[newL0], ov0);
 		int nv2 = getNewNodeFromOld(&oldModel->levels[oldL1], &newModel->levels[newL2], ov1);
 
-		int nVertices = (oldChunk->nVertices - 2) * 2 + 2; 
+		int nVertices = (oldChunk->nVertices - 2) * 2 + 2;
 
 		if (oldChunk->nVertices % 2 == 0) {
 			loadStripChunk(newModel, newChunk0, &newModel->levels[newL0], &newModel->levels[newL1],
@@ -415,7 +415,7 @@ static void recreateLayer(sm_model_t *newModel, int newLayer0, int newLayer1, in
 			loadStripChunk(newModel, newChunk1, &newModel->levels[newL1], &newModel->levels[newL2],
 						   nv1, nv2, nVertices - 1, oldChunk->backwards);
 		}
-		
+
 		nv1 = newModel->levels[newL1].incIdx(nv1, oldChunk->nVertices - 2);
 	}
 }
@@ -445,7 +445,7 @@ sm_model_t *sm_getUnitSphere(int precision) {
 	}
 	subdivideLevel(newModel, 2*i, oldModel, i);
 
-	recreateFan(newModel, newModel->nLayers, newModel->nLayers - 1, newModel->nLayers - 2, 
+	recreateFan(newModel, newModel->nLayers, newModel->nLayers - 1, newModel->nLayers - 2,
 	            oldModel, oldModel->nLayers, oldModel->nLayers - 1);
 
 	DBGPRINTMODEL(newModel);
